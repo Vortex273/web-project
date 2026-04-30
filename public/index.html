@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Найди свой путь</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ruslan+Display&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="offline-overlay" class="offline-overlay hidden">
+        <div class="offline-card premium-glass">
+            <div class="offline-icon-container">
+                <i class="fas fa-wifi fa-3x text-gold pulse"></i>
+                <div class="offline-cross"></div>
+            </div>
+            <h2 class="old-russian mt-2 text-gradient">Связь утеряна</h2>
+            <p class="mt-1 offline-desc">Ожидание восстановления потока времени. Пожалуйста, проверьте подключение к сети...</p>
+            <div class="spinner mt-2 mx-auto"></div>
+        </div>
+    </div>
+
+    <audio id="bg-audio" loop></audio>
+    <div class="bg-texture"></div>
+    <div class="bg-glow"></div>
+
+    <header id="main-header" class="hidden glass-header">
+        <div class="header-content">
+            <div class="logo old-russian" id="logo-home">
+                <i class="fab fa-fort-awesome text-gold"></i> Самара 63
+            </div>
+            <div class="user-icon" id="btn-profile">
+                <img id="user-avatar" src="images/avatars/default.png" alt="Аватар">
+            </div>
+        </div>
+    </header>
+
+    <main class="main-wrapper">
+        <section id="page-auth" class="page active">
+            <div class="auth-card premium-glass slide-up">
+                <div class="text-center mb-2"><i class="fab fa-fly fa-3x text-gold glow-icon"></i></div>
+                <h2 class="old-russian text-center mb-2 text-gradient">Введите логин и пароль</h2>
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="auth-login" placeholder="Введите логин" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-key"></i>
+                    <input type="password" id="auth-pass" placeholder="Введите пароль">
+                </div>
+                <button id="btn-login" class="btn-primary w-100 mt-2 hover-lift">В путь</button>
+            </div>
+        </section>
+
+        <section id="page-main" class="page container hidden">
+            <div id="selection-block" class="card premium-glass fade-in">
+                <h1 class="old-russian text-center title-ornament text-gradient">Выбери свой путь</h1>
+                <div class="selectors-grid mt-2">
+                    <div class="select-wrapper">
+                        <div class="custom-select" id="theme-custom">
+                            <button type="button" class="custom-select-trigger" id="theme-trigger">Выберите тему</button>
+                            <div class="custom-select-menu hidden" id="theme-menu"></div>
+                        </div>
+                        <select id="select-theme" class="native-select-hidden"><option value="" disabled selected>Эпоха / Направление</option></select>
+                    </div>
+                    <div class="select-wrapper">
+                        <div class="custom-select custom-select-disabled" id="route-custom">
+                            <button type="button" class="custom-select-trigger" id="route-trigger" disabled>Сначала выберите тему</button>
+                            <div class="custom-select-menu hidden" id="route-menu"></div>
+                        </div>
+                        <select id="select-route" class="native-select-hidden" disabled><option value="" disabled selected>Сначала выберите эпоху</option></select>
+                    </div>
+                </div>
+                <div id="route-meta" class="route-meta hidden">
+                    <span class="badge"><i class="fas fa-layer-group text-gold"></i> <span id="meta-difficulty"></span></span>
+                    <span class="badge"><i class="fas fa-hourglass-half text-gold"></i> <span id="meta-duration"></span></span>
+                    <span class="badge"><i class="fas fa-map-pin text-gold"></i> <span id="meta-points"></span> локаций</span>
+                </div>
+                <button id="btn-start-route" class="btn-primary w-100 mt-2 hover-lift" disabled>Показать путь</button>
+            </div>
+
+            <div id="route-block" class="hidden fade-in">
+                <div class="progress-bar-container glass">
+                    <div id="route-progress" class="progress-bar"></div>
+                </div>
+
+                <div class="viewer-card premium-glass">
+                    <div class="layer-container">
+                        <div id="panorama-layer" class="viewer-layer active"></div>
+                        <div id="map-layer" class="viewer-layer">
+                            <div id="map-container" style="width:100%; height:100%;"></div>
+                            <div class="map-overlay glass"><i class="fas fa-route text-gold"></i> Путь к следующей точке</div>
+                        </div>
+                        <button id="btn-prev" class="nav-arrow left hidden hover-lift"><i class="fas fa-chevron-left"></i></button>
+                        <button id="btn-next" class="nav-arrow right hover-lift"><i class="fas fa-chevron-right"></i></button>
+                        <button class="audio-control glass" id="audio-toggle" title="Звук окружения"><i class="fas fa-volume-mute"></i></button>
+                        <div id="loading-spinner" class="spinner-container hidden">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="description-panel" class="description-block premium-glass mt-2">
+                    <div class="point-header">
+                        <h2 id="point-title" class="old-russian text-gold"></h2>
+                        <button id="btn-favorite" class="icon-btn hover-scale"><i class="far fa-heart"></i></button>
+                    </div>
+                    <p id="point-desc" class="mt-1"></p>
+                    <p id="point-source" class="source-text mt-1"></p>
+                    <div class="controls mt-2">
+                        <button class="btn-secondary hover-lift" id="btn-restart"><i class="fas fa-undo"></i> В начало</button>
+                        <button class="btn-secondary hover-lift" id="btn-main-menu"><i class="fas fa-map"></i> Вернуться к карте</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="quiz-block" class="hidden card premium-glass slide-up">
+                <h2 class="old-russian text-center title-ornament text-gradient">Испытание памяти</h2>
+                <div id="quiz-content" class="mt-2"></div>
+                <button class="btn-primary w-100 mt-2 hover-lift" onclick="app.finishQuiz()">Завершить маршрут</button>
+            </div>
+        </section>
+
+        <section id="page-profile" class="page container hidden">
+            <div class="profile-card premium-glass slide-up">
+                <h2 class="old-russian text-center title-ornament text-gradient mb-2">
+                    <i class="fas fa-scroll"></i> Личное дело <i class="fas fa-scroll"></i>
+                </h2>
+                <div class="profile-header">
+                    <div class="profile-avatar-column">
+                        <div class="avatar-glow-wrap">
+                            <img id="profile-avatar" src="images/avatars/default.png" alt="Аватар">
+                        </div>
+                        <p class="text-center mt-1" style="font-size: 0.85rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px;">Изменить облик:</p>
+                        <div class="avatar-options mt-1">
+                            <img src="images/avatars/avatar1.png" data-avatar="avatar1.png">
+                            <img src="images/avatars/avatar2.png" data-avatar="avatar2.png">
+                            <img src="images/avatars/avatar3.png" data-avatar="avatar3.png">
+                        </div>
+                    </div>
+                    <div class="profile-inputs-column">
+                        <div class="input-solid-wrap">
+                            <label>Имя в истории:</label>
+                            <input type="text" id="prof-login" class="readonly-input text-white" readonly>
+                            <div class="nickname-actions mt-1">
+                                <button type="button" id="btn-edit-login" class="btn-secondary btn-small"><i class="fas fa-pen"></i> Изменить ник</button>
+                                <button type="button" id="btn-save-login" class="btn-primary btn-small hidden"><i class="fas fa-check"></i> Сохранить</button>
+                                <button type="button" id="btn-cancel-login" class="btn-secondary btn-small hidden"><i class="fas fa-times"></i> Отмена</button>
+                            </div>
+                        </div>
+                        <div class="input-solid-wrap mt-2 flex-row-level">
+                            <div class="w-50">
+                                <label>Уровень:</label>
+                                <input type="text" id="prof-level" class="readonly-input text-gold old-russian" readonly>
+                            </div>
+                            <div class="w-50">
+                                <label>Достигнутый ранг:</label>
+                                <input type="text" id="prof-rank" class="readonly-input text-gold old-russian" readonly>
+                            </div>
+                        </div>
+                        <div class="input-solid-wrap mt-2 xp-block">
+                            <label id="xp-text" style="text-align: right; margin-bottom: 5px;">0 / 100 XP</label>
+                            <div class="xp-bar-container"><div id="xp-fill" class="xp-bar-fill"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-grid mt-2">
+                    <div class="dash-col">
+                        <h3 class="old-russian mb-1 text-gold"><i class="fas fa-scroll"></i> Летопись побед</h3>
+                        <div id="profile-routes-list" class="scrollable-list custom-scroll"></div>
+                    </div>
+                    <div class="dash-col">
+                        <h3 class="old-russian mb-1 text-gold"><i class="fas fa-star"></i> Тайники памяти</h3>
+                        <div id="profile-favorites-list" class="scrollable-list custom-scroll"></div>
+                    </div>
+                </div>
+                <button class="btn-secondary mt-2 w-100 hover-lift" id="btn-logout"><i class="fas fa-sign-out-alt"></i> Покинуть пределы</button>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast-container"></div>
+    <script src="app.js"></script>
+</body>
+</html>
