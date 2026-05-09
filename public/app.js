@@ -646,39 +646,19 @@ class SamaraApp {
         this.els.spinner.classList.toggle("hidden", !show);
     }
 
-    mountIframe(container, panoramaId) {
-        return new Promise((resolve) => {
-            this.setViewerSpinner(true);
-            container.innerHTML = "";
-            const iframe = document.createElement("iframe");
-            iframe.width = "100%";
-            iframe.height = "100%";
-            iframe.allowFullscreen = true;
-            iframe.style.border = "none";
-            iframe.src = `https://panoraven.com/en/embed/${panoramaId}`;
-            let done = false;
+    mountPanorama(container, frames) {
+    return new Promise((resolve) => {
+        this.setViewerSpinner(true);
 
-            const finish = () => {
-                if (done) return;
-                done = true;
-                this.setViewerSpinner(false);
-                resolve();
-            };
+        container.innerHTML = "";
 
-            iframe.onload = finish;
-            container.appendChild(iframe);
-            setTimeout(() => {
-                if (!done) {
-                    this.setViewerSpinner(false);
-                    if (!navigator.onLine || this.isOffline) {
-                        this.toast("Сеть недоступна: панорама может не загрузиться", "warning");
-                    }
-                    done = true;
-                    resolve();
-                }
-            }, 4000);
-        });
-    }
+        new PanoramaViewer(container, frames);
+
+        this.setViewerSpinner(false);
+
+        resolve();
+    });
+}
 
     async renderPoint() {
         const point = this.currentRoute.pointsData[this.currentPointIndex];
@@ -700,17 +680,29 @@ class SamaraApp {
             this.els.mapLayer.classList.remove("active");
             this.els.panoLayer.classList.add("active");
             this.els.descPanel.style.opacity = "1";
-            await this.mountIframe(this.els.panoLayer, point.panorama);
+            await this.mountPanorama(this.els.panoLayer, point.frames);
             this.checkFavoriteState();
         } else {
-            this.els.panoLayer.classList.remove("active");
-            this.els.mapLayer.classList.add("active");
-            this.els.pointTitle.innerText = "Переход между точками";
-            this.els.pointDesc.innerText = "Это карта перехода. Нажмите стрелку вправо, чтобы перейти к следующей локации.";
-            this.els.pointSource.innerHTML = "";
-            this.els.descPanel.style.opacity = "0.82";
-            await this.mountIframe(this.els.mapContainer, point.nextMap);
-        }
+    this.els.panoLayer.classList.remove("active");
+    this.els.mapLayer.classList.add("active");
+
+    this.els.pointTitle.innerText = "Переход между точками";
+
+    this.els.pointDesc.innerText =
+        "Это карта перехода. Нажмите стрелку вправо, чтобы перейти к следующей локации.";
+
+    this.els.pointSource.innerHTML = "";
+
+    this.els.descPanel.style.opacity = "0.82";
+
+    this.els.mapLayer.innerHTML = `
+        <img
+            src="${point.nextMap}"
+            class="transition-map"
+            alt="Карта перехода"
+        >
+    `;
+}
 
         this.els.btnPrev.classList.toggle("hidden", this.currentPointIndex === 0 && !this.showingMap);
         const isLastPoint = this.currentPointIndex === totalPoints - 1;
@@ -762,7 +754,8 @@ class SamaraApp {
         }
         if (this.currentPointIndex > 0) {
             this.currentPointIndex -= 1;
-            this.showingMap = true;
+            this.showingMap =
+                !!this.currentRoute.pointsData[this.currentPointIndex].nextMap;
             this.renderPoint();
         }
     }
@@ -856,7 +849,7 @@ class SamaraApp {
                     routeId: this.currentRoute.id,
                     pointIndex: this.currentPointIndex,
                     pointTitle: point.title,
-                    pointPanorama: point.panorama
+                    pointPanorama: point.frames?.[0]
                 })
             });
             this.toast(data.action === "added" ? "Добавлено в избранное" : "Удалено из избранного", "success");
