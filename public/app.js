@@ -660,7 +660,6 @@ class SamaraApp {
         }
 
 
-
         if (!this.showingMap) {
             this.els.pointTitle.innerText = point.title;
             this.els.pointDesc.innerText = point.desc;

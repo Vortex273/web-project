@@ -168,7 +168,6 @@ const ROUTES = {
             ]
         },
 
-
         {
             id: 'kazakhstan2',
             name: 'Столица и центр языковой политики',
