@@ -1,147 +1,79 @@
 class PanoramaViewer {
-    constructor(container, imageSrc) {
-        this.container = container;
-        this.imageSrc = imageSrc;
-
-        this.scale = 1;
-        this.minScale = 1;
-        this.maxScale = 5;
-
-        this.translateX = 0;
-        this.translateY = 0;
-
-        this.isDragging = false;
-
-        this.startX = 0;
-        this.startY = 0;
-
-        this.init();
-    }
-
-    init() {
-        this.container.innerHTML = "";
-
-        this.wrapper = document.createElement("div");
-        this.wrapper.className = "panorama-wrapper";
-
-        this.image = document.createElement("img");
-        this.image.className = "panorama-image";
-        this.image.draggable = false;
-        this.image.src = this.imageSrc;
-
-        this.loader = document.createElement("div");
-        this.loader.className = "panorama-loader";
-        this.loader.innerHTML = "Загрузка...";
-
-        this.wrapper.appendChild(this.image);
-        this.container.appendChild(this.wrapper);
-        this.container.appendChild(this.loader);
-
-        this.image.onload = () => {
-            this.loader.style.display = "none";
-            this.updateTransform();
-        };
-
-        this.image.onerror = () => {
-            this.loader.innerHTML = "Ошибка загрузки изображения";
-        };
-
-        this.bindEvents();
-    }
-
-    bindEvents() {
-        this.container.addEventListener("wheel", (e) => {
-            e.preventDefault();
-
-            const rect = this.container.getBoundingClientRect();
-
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-
-            const delta = e.deltaY > 0 ? -0.1 : 0.1;
-
-            const prevScale = this.scale;
-
-            this.scale += delta;
-            this.scale = Math.max(this.minScale, Math.min(this.scale, this.maxScale));
-
-            const scaleRatio = this.scale / prevScale;
-
-            this.translateX =
-                mouseX - (mouseX - this.translateX) * scaleRatio;
-
-            this.translateY =
-                mouseY - (mouseY - this.translateY) * scaleRatio;
-
-            this.limitBounds();
-            this.updateTransform();
-        });
-
-        this.container.addEventListener("mousedown", (e) => {
-            this.isDragging = true;
-
-            this.startX = e.clientX - this.translateX;
-            this.startY = e.clientY - this.translateY;
-
-            this.wrapper.style.cursor = "grabbing";
-        });
-
-        window.addEventListener("mousemove", (e) => {
-            if (!this.isDragging) return;
-
-            this.translateX = e.clientX - this.startX;
-            this.translateY = e.clientY - this.startY;
-
-            this.limitBounds();
-            this.updateTransform();
+            this.wrapper.classList.add("dragging");
         });
 
         window.addEventListener("mouseup", () => {
-            this.isDragging = false;
-            this.wrapper.style.cursor = "grab";
+            this.dragging = false;
+            this.wrapper.classList.remove("dragging");
         });
 
-        this.container.addEventListener("mouseleave", () => {
-            this.isDragging = false;
-            this.wrapper.style.cursor = "grab";
+        window.addEventListener("mousemove", (e) => {
+            if (!this.dragging) return;
+
+            const diff = e.clientX - this.startX;
+
+            if (Math.abs(diff) > 12) {
+                if (diff > 0) {
+                    this.prevFrame();
+                } else {
+                    this.nextFrame();
+                }
+
+                this.startX = e.clientX;
+            }
         });
 
-        window.addEventListener("resize", () => {
-            this.limitBounds();
-            this.updateTransform();
-        });
+        this.wrapper.addEventListener(
+            "wheel",
+            (e) => {
+                e.preventDefault();
+
+                if (e.deltaY > 0) {
+                    this.scale -= 0.1;
+                } else {
+                    this.scale += 0.1;
+                }
+
+                this.scale = Math.max(1, Math.min(4, this.scale));
+
+                this.updateTransform();
+            },
+            { passive: false }
+        );
     }
 
-    limitBounds() {
-        const containerWidth = this.container.clientWidth;
-        const containerHeight = this.container.clientHeight;
+    prevFrame() {
+        this.currentFrame--;
 
-        const imageWidth = this.image.naturalWidth * this.scale;
-        const imageHeight = this.image.naturalHeight * this.scale;
-
-        const minX = Math.min(0, containerWidth - imageWidth);
-        const minY = Math.min(0, containerHeight - imageHeight);
-
-        const maxX = 0;
-        const maxY = 0;
-
-        this.translateX = Math.max(minX, Math.min(maxX, this.translateX));
-        this.translateY = Math.max(minY, Math.min(maxY, this.translateY));
-
-        if (imageWidth <= containerWidth) {
-            this.translateX = (containerWidth - imageWidth) / 2;
+        if (this.currentFrame < 0) {
+            this.currentFrame = this.frames.length - 1;
         }
 
-        if (imageHeight <= containerHeight) {
-            this.translateY = (containerHeight - imageHeight) / 2;
+        this.render();
+    }
+
+    nextFrame() {
+        this.currentFrame++;
+
+        if (this.currentFrame >= this.frames.length) {
+            this.currentFrame = 0;
         }
+
+        this.render();
     }
 
     updateTransform() {
-        this.image.style.transform = `
-            translate(${this.translateX}px, ${this.translateY}px)
-            scale(${this.scale})
-        `;
+        this.image.style.transform = `translate(-50%, -50%) scale(${this.scale})`;
+    }
+
+    render() {
+        if (!this.frames.length) {
+            this.image.src = "";
+            return;
+        }
+
+        this.image.src = this.frames[this.currentFrame];
+        this.updateTransform();
     }
 }
 
