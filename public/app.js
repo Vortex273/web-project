@@ -456,7 +456,9 @@ class SamaraApp {
     }
 
     updateUserUI() {
-        const avatarPath = this.user.avatar.includes("http") ? this.user.avatar : `images/avatars/${this.user.avatar}`;
+        const avatarPath = this.user.avatar.includes("http")
+    ? this.user.avatar
+    : `/images/avatars/${this.user.avatar}`;
         this.els.avatarHeader.src = avatarPath;
         this.els.avatarProfile.src = avatarPath;
         document.getElementById("prof-login").value = this.user.login;
@@ -725,7 +727,8 @@ class SamaraApp {
 
         // Если сейчас не показывается карта и для точки задана карта перехода
         if (!this.showingMap && point.nextMap) {
-            this.showingMap = true;
+            this.showingMap = false;
+            this.currentPointIndex += 1;
             this.renderPoint();
             return;
         }
@@ -733,7 +736,6 @@ class SamaraApp {
         // Если сейчас показывается карта – просто переходим к следующей точке
         if (this.showingMap) {
             this.showingMap = false;
-            this.currentPointIndex += 1;
             this.renderPoint();
             return;
         }
@@ -757,8 +759,7 @@ class SamaraApp {
         }
         if (this.currentPointIndex > 0) {
             this.currentPointIndex -= 1;
-            this.showingMap =
-                !!this.currentRoute.pointsData[this.currentPointIndex].nextMap;
+            this.showingMap = false;
             this.renderPoint();
         }
     }
