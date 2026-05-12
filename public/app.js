@@ -675,6 +675,7 @@ class SamaraApp {
             this.saveProgress(percent, this.currentRoute.name);
         }
 
+
         if (!this.showingMap) {
             this.els.pointTitle.innerText = point.title;
             this.els.pointDesc.innerText = point.desc;
