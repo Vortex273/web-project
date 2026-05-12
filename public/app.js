@@ -680,7 +680,10 @@ class SamaraApp {
             this.els.mapLayer.classList.remove("active");
             this.els.panoLayer.classList.add("active");
             this.els.descPanel.style.opacity = "1";
-            await this.mountPanorama(this.els.panoLayer, point.frames);
+            await this.mountPanorama(
+    this.els.panoLayer,
+    Array.isArray(point.frames) ? point.frames : []
+);
             this.checkFavoriteState();
         } else {
     this.els.panoLayer.classList.remove("active");

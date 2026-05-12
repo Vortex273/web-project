@@ -1,21 +1,4 @@
 class PanoramaViewer {
-        this.bindEvents();
-
-        this.render();
-    }
-
-    bindEvents() {
-        this.leftBtn.addEventListener("click", () => {
-            this.prevFrame();
-        });
-
-        this.rightBtn.addEventListener("click", () => {
-            this.nextFrame();
-        });
-
-        this.wrapper.addEventListener("mousedown", (e) => {
-            this.dragging = true;
-            this.startX = e.clientX;
             this.wrapper.classList.add("dragging");
         });
 
@@ -40,19 +23,23 @@ class PanoramaViewer {
             }
         });
 
-        this.wrapper.addEventListener("wheel", (e) => {
-            e.preventDefault();
+        this.wrapper.addEventListener(
+            "wheel",
+            (e) => {
+                e.preventDefault();
 
-            if (e.deltaY > 0) {
-                this.scale -= 0.1;
-            } else {
-                this.scale += 0.1;
-            }
+                if (e.deltaY > 0) {
+                    this.scale -= 0.1;
+                } else {
+                    this.scale += 0.1;
+                }
 
-            this.scale = Math.max(1, Math.min(4, this.scale));
+                this.scale = Math.max(1, Math.min(4, this.scale));
 
-            this.updateTransform();
-        }, { passive: false });
+                this.updateTransform();
+            },
+            { passive: false }
+        );
     }
 
     prevFrame() {
@@ -80,6 +67,11 @@ class PanoramaViewer {
     }
 
     render() {
+        if (!this.frames.length) {
+            this.image.src = "";
+            return;
+        }
+
         this.image.src = this.frames[this.currentFrame];
         this.updateTransform();
     }
