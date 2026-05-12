@@ -558,3 +558,6 @@ button {
     .nickname-actions { justify-content: stretch; }
     .btn-small { width: 100%; }
 }
+.panorama-viewer img {
+    display: block;
+}

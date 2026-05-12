@@ -1,8 +1,4 @@
 class PanoramaViewer {
-            this.wrapper.classList.add("dragging");
-        });
-
-        window.addEventListener("mouseup", () => {
             this.dragging = false;
             this.wrapper.classList.remove("dragging");
         });
@@ -63,18 +59,34 @@ class PanoramaViewer {
     }
 
     updateTransform() {
-        this.image.style.transform = `translate(-50%, -50%) scale(${this.scale})`;
-    }
+    const scale = this.scale || 1;
+
+    this.image.style.transform =
+        `translate(-50%, -50%) scale(${scale})`;
+}
 
     render() {
-        if (!this.frames.length) {
-            this.image.src = "";
-            return;
-        }
-
-        this.image.src = this.frames[this.currentFrame];
-        this.updateTransform();
+    if (!this.frames.length) {
+        this.image.src = "";
+        return;
     }
+
+    const src = this.frames[this.currentFrame];
+
+    console.log('LOAD:', src);
+
+    this.image.onload = () => {
+        console.log('IMAGE LOADED');
+    };
+
+    this.image.onerror = (e) => {
+        console.error('IMAGE ERROR', e);
+    };
+
+    this.image.src = src;
+
+    this.updateTransform();
+}
 }
 
 window.PanoramaViewer = PanoramaViewer;

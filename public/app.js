@@ -1,38 +1,20 @@
 class SamaraApp {
-    constructor() {
-        this.apiBase = window.location.origin;
-        this.user = JSON.parse(sessionStorage.getItem("samara_user")) || null;
-        this.currentRoute = null;
-        this.currentPointIndex = 0;
-        this.showingMap = false;
-        this.audio = document.getElementById("bg-audio");
-        this.audioEnabled = false;
-        this.quizState = { answered: 0, errors: 0, total: 0 };
-        this.isOffline = !navigator.onLine;
-        this.pingTimer = null;
-        this.pageTransitionMs = 240;
-        this.lastSavedPercent = -1;
-        this.hasConnectionStateInitialized = false;
-        this.toastHistory = new Map();
-        this.toastQueue = [];
-        this.activeToasts = new Map();
-        this.maxVisibleToasts = 4;
-        this.xpPerLevel = 120;
-        this.isNicknameEditing = false;
-        this.currentRouteAudioSrc = "";
+    constructor(container, frames = []) {
+       console.log('VIEWER FRAMES:', frames);
+       this.container = container;
+       this.frames = Array.isArray(frames) ? frames : [];
 
-        this.initDOM();
+       this.currentFrame = 0;
+
+        this.scale = 1;
+
+        this.dragging = false;
+        this.startX = 0;
+
+        this.build();
         this.bindEvents();
-        this.setupConnectionManager();
-        this.switchPage(this.user ? "page-main" : "page-auth", true);
-
-        if (this.user) {
-            this.updateUserUI();
-            this.loadThemes();
-        } else {
-            this.els.header.classList.add("hidden");
-        }
-    }
+        this.render();
+}
 
     initDOM() {
         this.els = {
@@ -645,14 +627,16 @@ class SamaraApp {
     setViewerSpinner(show) {
         this.els.spinner.classList.toggle("hidden", !show);
     }
+    console.log('POINT:', point);
+    console.log('FRAMES:', point.frames);
 
-    mountPanorama(container, frames) {
-    return new Promise((resolve) => {
-        this.setViewerSpinner(true);
+    async mountPanorama(container, frames) {
+        console.log('MOUNT FRAMES:', frames);
 
-        container.innerHTML = "";
+        container.innerHTML = '';
 
         new PanoramaViewer(container, frames);
+    }
 
         this.setViewerSpinner(false);
 
