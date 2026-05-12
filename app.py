@@ -289,6 +289,7 @@ def get_routes(theme_id):
     prepared = []
 
 
+
     for route in routes:
         prepared.append({
             'id': route.get('id'),
