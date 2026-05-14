@@ -226,7 +226,9 @@ class SamaraApp {
 
     async api(path, options = {}) {
         if (this.isOffline) throw new Error("offline");
-        const response = await fetch(`${this.apiBase}${path}`, options);
+        const response = await fetch(`${this.apiBase}${path}`, options, {
+    cache: 'no-store'
+});
         if (!response.ok) throw new Error(`http_${response.status}`);
         return response.json();
     }

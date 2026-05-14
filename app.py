@@ -13,7 +13,7 @@ from flask_cors import CORS
 BASE_DIR = Path(__file__).resolve().parent
 PUBLIC_DIR = BASE_DIR / 'public'
 DB_PATH = BASE_DIR / 'database.sqlite'
-SERVER_JS_PATH = BASE_DIR / 'server.js'
+ROUTES_JSON_PATH = PUBLIC_DIR / 'routes.json'
 
 app = Flask(__name__, static_folder=str(PUBLIC_DIR), static_url_path='')
 CORS(app)
@@ -95,121 +95,42 @@ DIFFICULTY_XP_MULTIPLIER = {
     'Средний': 1.2,
     'Сложный': 1.4
 }
+# ---------- Загрузка routes.json ----------
+def load_routes_data():
+    print("READING ROUTES.JSON")
+
+    print("PATH:", ROUTES_JSON_PATH)
+
+    try:
+        with open(
+            ROUTES_JSON_PATH,
+            'r',
+            encoding='utf-8'
+        ) as file:
+
+            data = json.load(file)
+
+        print("SUCCESS LOADED")
+
+        return data
+
+    except Exception as error:
+        print("ERROR:", error)
+
+        return {
+            'THEMES': [],
+            'ROUTES': {}
+        }
 
 
-# ---------- Загрузка THEMES и ROUTES из server.js ----------
-# Поддерживает:
-# const THEMES = ...
-# let THEMES = ...
-# var THEMES = ...
-# export const THEMES = ...
+def get_themes():
+    return load_routes_data().get('THEMES', [])
 
 
-def extract_js_block(content: str, variable_name: str):
-    patterns = [
-        rf'const\s+{variable_name}\s*=\s*',
-        rf'let\s+{variable_name}\s*=\s*',
-        rf'var\s+{variable_name}\s*=\s*',
-        rf'export\s+const\s+{variable_name}\s*=\s*'
-    ]
-
-    match = None
-
-    for pattern in patterns:
-        match = re.search(pattern, content)
-        if match:
-            break
-
-    if not match:
-        raise RuntimeError(
-            f'Не найден блок {variable_name}. Проверь название переменной в server.js'
-        )
-
-    start = match.end()
-
-    while start < len(content) and content[start] not in '[{':
-        start += 1
-
-    if start >= len(content):
-        raise RuntimeError(f'Ошибка чтения {variable_name}')
-
-    opening = content[start]
-    closing = ']' if opening == '[' else '}'
-
-    depth = 0
-    in_string = False
-    string_char = ''
-    escaped = False
-
-    for index in range(start, len(content)):
-        char = content[index]
-
-        if in_string:
-            if escaped:
-                escaped = False
-            elif char == '\\':
-                escaped = True
-            elif char == string_char:
-                in_string = False
-            continue
-
-        if char in ['\"', "'"]:
-            in_string = True
-            string_char = char
-            continue
-
-        if char == opening:
-            depth += 1
-        elif char == closing:
-            depth -= 1
-
-            if depth == 0:
-                return content[start:index + 1]
-
-    raise RuntimeError(f'Не удалось разобрать {variable_name}')
+def get_routes():
+    return load_routes_data().get('ROUTES', {})
 
 
-# Используем Node.js только для парсинга JS-объектов.
-def load_routes_and_themes():
-    if not SERVER_JS_PATH.exists():
-        raise RuntimeError('server.js не найден')
-
-    server_content = SERVER_JS_PATH.read_text(encoding='utf-8')
-
-    themes_raw = extract_js_block(server_content, 'THEMES')
-    routes_raw = extract_js_block(server_content, 'ROUTES')
-
-    temp_loader = BASE_DIR / '_tmp_loader.js'
-
-    temp_loader.write_text(
-        f'''
-const THEMES = {themes_raw};
-const ROUTES = {routes_raw};
-
-console.log(JSON.stringify({{ THEMES, ROUTES }}));
-''',
-        encoding='utf-8'
-    )
-
-    import subprocess
-
-    result = subprocess.run(
-        ['node', str(temp_loader)],
-        capture_output=True,
-        text=True,
-        encoding='utf-8'
-    )
-
-    temp_loader.unlink(missing_ok=True)
-
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr)
-
-    parsed = json.loads(result.stdout)
-    return parsed['THEMES'], parsed['ROUTES']
-
-
-THEMES, ROUTES = load_routes_and_themes()
 
 
 # ---------- Helpers ----------
@@ -241,13 +162,16 @@ def db_run(query, params=()):
 
 
 def find_route_meta(route_id):
-    for theme_id, routes in ROUTES.items():
+    routes_data = get_routes()
+
+    for theme_id, routes in routes_data.items():
         for route in routes:
             if route.get('id') == route_id:
                 return {
                     'route': route,
                     'themeId': theme_id
                 }
+
     return None
 
 
@@ -278,15 +202,29 @@ def ping():
 
 
 @app.route('/api/themes', methods=['GET'])
-def get_themes():
-    return jsonify(THEMES)
+def api_get_themes():
+    return jsonify(get_themes())
 
 
 @app.route('/api/routes/<theme_id>', methods=['GET'])
-def get_routes(theme_id):
-    routes = ROUTES.get(theme_id, [])
+def api_get_routes(theme_id):
+    routes_data = get_routes()
+
+    routes = routes_data.get(theme_id, [])
 
     prepared = []
+
+    for route in routes:
+        prepared.append({
+            'id': route.get('id'),
+            'name': route.get('name'),
+            'description': route.get('description'),
+            'difficulty': route.get('difficulty'),
+            'duration': route.get('duration'),
+            'points': len(route.get('pointsData', []))
+        })
+
+    return jsonify(prepared)
 
 
     for route in routes:
@@ -304,13 +242,20 @@ def get_routes(theme_id):
 
 @app.route('/api/route/<route_id>', methods=['GET'])
 def get_route(route_id):
+    routes_data = get_routes()
+
     route = None
 
-    for routes in ROUTES.values():
+    for routes in routes_data.values():
         for item in routes:
             if item.get('id') == route_id:
                 route = item
                 break
+
+    if not route:
+        return jsonify({'error': 'Маршрут не найден'}), 404
+
+    return jsonify(route)
 
     if not route:
         return jsonify({'error': 'Маршрут не найден'}), 404
@@ -687,7 +632,7 @@ def static_proxy(path):
 
     return send_from_directory(PUBLIC_DIR, 'index.html')
 
-
+print("FLASK BACKEND ACTIVE")
 # ---------- Start ----------
 if __name__ == '__main__':
     init_database()
@@ -695,6 +640,6 @@ if __name__ == '__main__':
     app.run(
         host='0.0.0.0',
         port=3000,
-        debug=True
+        debug=True,
+        use_reloader=True
     )
-
