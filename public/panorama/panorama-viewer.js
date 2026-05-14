@@ -204,7 +204,7 @@ class PanoramaViewer {
             // показываем ЛЕВЫЙ край изображения
             this.posX = 0;
             this.posY = 0;
-            this.scale = 1.5;
+            this.scale = 1;
 
             this.updateTransform();
         };
