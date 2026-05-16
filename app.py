@@ -6,6 +6,8 @@ import os
 import re
 import sqlite3
 from pathlib import Path
+import threading
+import time
 
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -89,6 +91,8 @@ THEME_XP_MULTIPLIER = {
     'georgia': 1.15,
     'silk': 1.25
 }
+
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 DIFFICULTY_XP_MULTIPLIER = {
     'Лёгкий': 1.0,
@@ -206,6 +210,33 @@ def api_get_themes():
     return jsonify(get_themes())
 
 
+@app.after_request
+def add_cache_headers(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
+
+@app.after_request
+def api_response_headers(response):
+    if request.path.startswith('/api'):
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        response.headers['Cache-Control'] = 'no-store'   # переопределяем глобальный заголовок
+    return response
+
+
+
+
+@app.after_request
+def remove_static_headers(response):
+    # Убираем ETag и Last-Modified для ответов, отданных через static_proxy или встроенную статику
+    if request.endpoint in ('static_proxy', 'static'):
+        response.headers.pop('ETag', None)
+        response.headers.pop('Last-Modified', None)
+    return response
+
+
 @app.route('/api/routes/<theme_id>', methods=['GET'])
 def api_get_routes(theme_id):
     routes_data = get_routes()
@@ -227,17 +258,6 @@ def api_get_routes(theme_id):
     return jsonify(prepared)
 
 
-    for route in routes:
-        prepared.append({
-            'id': route.get('id'),
-            'name': route.get('name'),
-            'description': route.get('description'),
-            'difficulty': route.get('difficulty'),
-            'duration': route.get('duration'),
-            'points': len(route.get('pointsData', []))
-        })
-
-    return jsonify(prepared)
 
 
 @app.route('/api/route/<route_id>', methods=['GET'])
@@ -617,6 +637,20 @@ def update_login(user_id):
         return jsonify({'error': str(error)}), 500
 
 
+
+def watch_routes_file():
+    last_mtime = None
+    while True:
+        try:
+            mtime = os.path.getmtime(ROUTES_JSON_PATH)
+            if last_mtime is not None and mtime != last_mtime:
+                print('🔄 routes.json обновлён')
+            last_mtime = mtime
+        except OSError:
+            pass  # файл ещё не создан
+        time.sleep(2)
+
+
 # ---------- Frontend ----------
 @app.route('/')
 def root():
@@ -636,10 +670,7 @@ print("FLASK BACKEND ACTIVE")
 # ---------- Start ----------
 if __name__ == '__main__':
     init_database()
-
-    app.run(
-        host='0.0.0.0',
-        port=3000,
-        debug=True,
-        use_reloader=True
-    )
+    # Запускаем watcher в отдельном потоке только в главном процессе
+    if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        threading.Thread(target=watch_routes_file, daemon=True).start()
+    app.run(host='0.0.0.0', port=3000, debug=True, use_reloader=True)
