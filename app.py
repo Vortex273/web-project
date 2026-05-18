@@ -3,11 +3,10 @@
 
 import json
 import os
-import re
 import sqlite3
-from pathlib import Path
 import threading
 import time
+from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -27,6 +26,7 @@ for folder in [
     PUBLIC_DIR / 'images' / 'maps',
 ]:
     folder.mkdir(parents=True, exist_ok=True)
+
 
 # ---------- База данных ----------
 def get_db_connection():
@@ -99,6 +99,8 @@ DIFFICULTY_XP_MULTIPLIER = {
     'Средний': 1.2,
     'Сложный': 1.4
 }
+
+
 # ---------- Загрузка routes.json ----------
 def load_routes_data():
     print("READING ROUTES.JSON")
@@ -107,20 +109,12 @@ def load_routes_data():
 
     try:
         with open(
-            ROUTES_JSON_PATH,
-            'r',
-            encoding='utf-8'
-        ) as file:
-
+                ROUTES_JSON_PATH, 'r', encoding='utf-8') as file:
             data = json.load(file)
-
         print("SUCCESS LOADED")
-
         return data
-
     except Exception as error:
         print("ERROR:", error)
-
         return {
             'THEMES': [],
             'ROUTES': {}
@@ -135,8 +129,6 @@ def get_routes():
     return load_routes_data().get('ROUTES', {})
 
 
-
-
 # ---------- Helpers ----------
 def db_get(query, params=()):
     conn = get_db_connection()
@@ -145,13 +137,11 @@ def db_get(query, params=()):
     return dict(row) if row else None
 
 
-
 def db_all(query, params=()):
     conn = get_db_connection()
     rows = conn.execute(query, params).fetchall()
     conn.close()
     return [dict(row) for row in rows]
-
 
 
 def db_run(query, params=()):
@@ -164,10 +154,8 @@ def db_run(query, params=()):
     return lastrowid
 
 
-
 def find_route_meta(route_id):
     routes_data = get_routes()
-
     for theme_id, routes in routes_data.items():
         for route in routes:
             if route.get('id') == route_id:
@@ -179,7 +167,6 @@ def find_route_meta(route_id):
     return None
 
 
-
 def clamp_percent(value):
     try:
         number = round(float(value))
@@ -187,7 +174,6 @@ def clamp_percent(value):
         return 0
 
     return max(0, min(100, number))
-
 
 
 def calc_route_xp(delta_percent, route, theme_id):
@@ -222,10 +208,8 @@ def add_cache_headers(response):
 def api_response_headers(response):
     if request.path.startswith('/api'):
         response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        response.headers['Cache-Control'] = 'no-store'   # переопределяем глобальный заголовок
+        response.headers['Cache-Control'] = 'no-store'  # переопределяем глобальный заголовок
     return response
-
-
 
 
 @app.after_request
@@ -258,8 +242,6 @@ def api_get_routes(theme_id):
     return jsonify(prepared)
 
 
-
-
 @app.route('/api/route/<route_id>', methods=['GET'])
 def get_route(route_id):
     routes_data = get_routes()
@@ -277,10 +259,6 @@ def get_route(route_id):
 
     return jsonify(route)
 
-    if not route:
-        return jsonify({'error': 'Маршрут не найден'}), 404
-
-    return jsonify(route)
 
 
 @app.route('/api/auth', methods=['POST'])
@@ -637,7 +615,6 @@ def update_login(user_id):
         return jsonify({'error': str(error)}), 500
 
 
-
 def watch_routes_file():
     last_mtime = None
     while True:
@@ -666,7 +643,7 @@ def static_proxy(path):
 
     return send_from_directory(PUBLIC_DIR, 'index.html')
 
-print("FLASK BACKEND ACTIVE")
+
 # ---------- Start ----------
 if __name__ == '__main__':
     init_database()
