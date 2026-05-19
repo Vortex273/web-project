@@ -173,7 +173,6 @@ this.posY = this.startPosY + dy;
     const height =
         naturalHeight * finalScale;
 
-    // infinite X
     while (this.posX <= -width) {
         this.posX += width;
     }
@@ -182,7 +181,6 @@ this.posY = this.startPosY + dy;
         this.posX -= width;
     }
 
-    // bounded Y
     const minY =
         Math.min(0, wrapperHeight - height);
 
