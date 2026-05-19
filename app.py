@@ -1,6 +1,3 @@
-# app.py
-
-
 import json
 import os
 import sqlite3
@@ -19,7 +16,6 @@ ROUTES_JSON_PATH = PUBLIC_DIR / 'routes.json'
 app = Flask(__name__, static_folder=str(PUBLIC_DIR), static_url_path='')
 CORS(app)
 
-# ---------- Создание папок ----------
 for folder in [
     PUBLIC_DIR / 'audio',
     PUBLIC_DIR / 'images' / 'avatars',
@@ -28,7 +24,6 @@ for folder in [
     folder.mkdir(parents=True, exist_ok=True)
 
 
-# ---------- База данных ----------
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -84,7 +79,6 @@ def init_database():
     conn.close()
 
 
-# ---------- Константы ----------
 XP_PER_LEVEL = 120
 THEME_XP_MULTIPLIER = {
     'kazakhstan': 1.0,
@@ -101,7 +95,6 @@ DIFFICULTY_XP_MULTIPLIER = {
 }
 
 
-# ---------- Загрузка routes.json ----------
 def load_routes_data():
     print("READING ROUTES.JSON")
 
@@ -129,7 +122,6 @@ def get_routes():
     return load_routes_data().get('ROUTES', {})
 
 
-# ---------- Helpers ----------
 def db_get(query, params=()):
     conn = get_db_connection()
     row = conn.execute(query, params).fetchone()
@@ -185,7 +177,6 @@ def calc_route_xp(delta_percent, route, theme_id):
     return max(0, round(raw))
 
 
-# ---------- API ----------
 @app.route('/api/ping', methods=['GET'])
 def ping():
     return jsonify({'status': 'ok'})
@@ -208,13 +199,12 @@ def add_cache_headers(response):
 def api_response_headers(response):
     if request.path.startswith('/api'):
         response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        response.headers['Cache-Control'] = 'no-store'  # переопределяем глобальный заголовок
+        response.headers['Cache-Control'] = 'no-store' 
     return response
 
 
 @app.after_request
 def remove_static_headers(response):
-    # Убираем ETag и Last-Modified для ответов, отданных через static_proxy или встроенную статику
     if request.endpoint in ('static_proxy', 'static'):
         response.headers.pop('ETag', None)
         response.headers.pop('Last-Modified', None)
@@ -624,11 +614,10 @@ def watch_routes_file():
                 print('🔄 routes.json обновлён')
             last_mtime = mtime
         except OSError:
-            pass  # файл ещё не создан
+            pass 
         time.sleep(2)
 
 
-# ---------- Frontend ----------
 @app.route('/')
 def root():
     return send_from_directory(PUBLIC_DIR, 'index.html')
@@ -644,10 +633,8 @@ def static_proxy(path):
     return send_from_directory(PUBLIC_DIR, 'index.html')
 
 
-# ---------- Start ----------
 if __name__ == '__main__':
     init_database()
-    # Запускаем watcher в отдельном потоке только в главном процессе
     if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         threading.Thread(target=watch_routes_file, daemon=True).start()
     app.run(host='0.0.0.0', port=3000, debug=True, use_reloader=True)
